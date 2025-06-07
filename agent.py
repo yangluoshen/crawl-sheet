@@ -1,7 +1,6 @@
 import yaml
 import os
 import importlib
-from dataclasses import dataclass
 from smolagents import MCPClient, CodeAgent
 from smolagents.agents import  populate_template
 from smolagents import OpenAIServerModel
@@ -9,7 +8,7 @@ from smolagents import OpenAIServerModel
 
 def create_agent(tools: list = None, model = None):
     if model is None:
-        model = SmolCoderModelOpenrouter(
+        model = SmolCoderModel(
             model_id="openai/gpt-4.1",
             # model_id="openai/gpt-4o-mini",
             # model_id="google/gemini-2.5-flash-preview-05-20",
@@ -37,7 +36,6 @@ class SmolCodeAgent(CodeAgent):
 
         self.locale = locale
         super().__init__(prompt_templates=prompt_template, *args, **kwargs)
-        # self.logger = SmolagentsLogger()
 
     def initialize_system_prompt(self) -> str:
         system_prompt = populate_template(
@@ -57,19 +55,19 @@ class SmolCodeAgent(CodeAgent):
         return system_prompt
 
 
-@dataclass
 class SmolCoderModel(OpenAIServerModel):
-    model_id: str
-    api_base: str
-    api_key: str
 
-    def __post_init__(self):
-        super().__init__(
-            model_id=self.model_id, api_base=self.api_base, api_key=self.api_key
-        )
+    def __init__(self, *args, **kwargs):
+        api_base: str = os.environ.get("OPENROUTER_ENDPOINT")
+        api_key: str = os.environ.get("OPENROUTER_API_KEY")
+        super().__init__(api_base=api_base, api_key=api_key, *args, **kwargs)
 
+    def create_client(self):
+        try:
+            from langfuse.openai import openai
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(
+                "Please install 'langfuse' extra to use OpenAIServerModel: `pip install 'langfuse[openai]'`"
+            ) from e
 
-@dataclass
-class SmolCoderModelOpenrouter(SmolCoderModel):
-    api_base: str = os.environ.get("OPENROUTER_ENDPOINT")
-    api_key: str = os.environ.get("OPENROUTER_API_KEY")
+        return openai.OpenAI(**self.client_kwargs)
