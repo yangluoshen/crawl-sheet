@@ -1,23 +1,28 @@
 import yaml
 import os
 import importlib
-from dotenv import load_dotenv
 from dataclasses import dataclass
-from smolagents.agents import CodeAgent, populate_template
+from smolagents import MCPClient, CodeAgent
+from smolagents.agents import  populate_template
 from smolagents import OpenAIServerModel
 
-load_dotenv()
 
-def create_agent():
-    model = SmolCoderModelOpenrouter(
-        model_id="openai/gpt-4.1",
-        # model_id="openai/gpt-4o-mini",
-        # model_id="google/gemini-2.5-flash-preview-05-20",
-        # model_id="anthropic/claude-sonnet-4",
-    )
-    return SmolCodeAgent(model=model, tools=[])
+def create_agent(tools: list = None, model = None):
+    if model is None:
+        model = SmolCoderModelOpenrouter(
+            model_id="openai/gpt-4.1",
+            # model_id="openai/gpt-4o-mini",
+            # model_id="google/gemini-2.5-flash-preview-05-20",
+            # model_id="anthropic/claude-sonnet-4",
+        )
+    playwright_mcp = {
+        "url": "http://localhost:8931/sse",
+    }
+    with MCPClient([playwright_mcp]) as tools:
 
-ADDITIONAL_AUTHORIZED_IMPORTS = ["pandas", "numpy", "json", "scipy", "scipy.stats"]
+        return SmolCodeAgent(model=model, tools=tools)
+
+ADDITIONAL_AUTHORIZED_IMPORTS = ["pandas", "numpy", "json", "scrapy", "requests"]
 
 class SmolCodeAgent(CodeAgent):
     def __init__(self, locale: str = "en", *args, **kwargs):
